@@ -69,6 +69,7 @@ A step-by-step guide to run **n8n** locally using Docker Compose, import the pro
 - `Asana_Automation/Asana_Automation.json` — Asana workflow export  
 - `Asana_Automation/chatbot.html` — lightweight frontend that sends messages to an n8n webhook  
 - `Slack_AI_Agent_Chatbot/` — Slack AI Agent workflow export  
+- `RAG_with_Qdrant_VectorStore/` — RAG workflow using Qdrant vector store for document ingestion, embeddings, and AI-assisted chat
 
 ---
 
@@ -93,9 +94,9 @@ N8N_BASIC_AUTH_PASSWORD=1234
 ```
 
 ### Variables explained
-- **DB_TYPE, DB_POSTGRESDB_***: Configure n8n to connect to the Postgres database defined in `docker-compose.yml`. Make sure the user/password match the Postgres service.  
-- **N8N_BASIC_AUTH_***: Enable and set login credentials for the n8n UI. You can provide these in `.env` or directly in the `docker-compose.yml` environment section.  
-- **N8N_CORS_***: Allow browser-based frontends (like `chatbot.html` on port 3001) to access the n8n API/webhooks during development. This prevents cross-origin errors when your frontend and n8n run on different ports.  
+- **DB_TYPE, DB_POSTGRESDB_**: Configure n8n to connect to the Postgres database defined in `docker-compose.yml`. Make sure the user/password match the Postgres service.  
+- **N8N_BASIC_AUTH_**: Enable and set login credentials for the n8n UI. You can provide these in `.env` or directly in the `docker-compose.yml` environment section.  
+- **N8N_CORS_**: Allow browser-based frontends (like `chatbot.html` on port 3001) to access the n8n API/webhooks during development. This prevents cross-origin errors when your frontend and n8n run on different ports.  
 
 > **Tip:** For local development, you can use either approach—environment variables in `.env` or directly in the Docker environment section. Using `.env` keeps secrets out of version control. Always add `.env` to `.gitignore`.
 
@@ -143,7 +144,7 @@ Default login (from compose):
 1. Log in to n8n.
 2. Click **Workflows → New workflow**.
 3. Click the menu (⋯) in top-right → **Import from File**.
-4. Import `Asana_Automation/Asana_Automation.json` or `Slack_AI_Agent_Chatbot/Slack AI Agent Chatbot.json` files of the workflow you want to use.
+4. Import `Asana_Automation/Asana_Automation.json`, `Slack_AI_Agent_Chatbot/Slack AI Agent Chatbot.json`, or `RAG_with_Qdrant_VectorStore/RAG with Qdrant VectorStore.json` files of the workflow you want to use.
 5. Configure credentials (e.g., Slack, Asana, Qdrant, Google Drive, etc.)  
 6. Save and edit nodes as needed.
 7. Activate and run!  
@@ -193,10 +194,10 @@ docker volume rm <volume_name>
 
 ## 🔒 Security & Production Notes
 
-- **Do not use default credentials in production.**
+- Do not use default credentials in production.
 - Use strong passwords and secrets manager.
 - Do not commit `.env` or secrets to version control.
 - Consider HTTPS and a reverse proxy (e.g., nginx) before exposing n8n to the public internet.
-- Use separate credentials for production integrations (Asana, Slack, OpenAI).
+- Use separate credentials for production integrations (Asana, Slack, OpenAI, etc.).
 
 ---
