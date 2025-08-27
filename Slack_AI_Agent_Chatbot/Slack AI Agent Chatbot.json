@@ -1,0 +1,624 @@
+{
+  "name": "Slack AI Agent Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.blocks[0].elements[0].elements[1].text }}",
+        "options": {
+          "systemMessage": "=You are an AI assistant  connected to the company's internal knowledge base through a RAG (Retrieval Augmented Generation) system. Your purpose is to help team members quickly find and understand information from company documents.\n\nCORE RESPONSIBILITIES:\n- Respond to queries about company policies, procedures, documentation, and internal knowledge\n- Provide concise, accurate information retrieved from the company's document repository\n- Format responses appropriately for Slack (use markdown for clarity)\n- Cite the specific document source when providing information\n\nINTERACTION GUIDELINES:\n- Keep responses brief and to the point (aim for 3-5 sentences when possible)\n- Use bullet points for lists or step-by-step instructions\n- Include direct quotes from documents when relevant, using > for blockquotes\n- When unable to find information, clearly state this and suggest alternative resources\n\nTECHNICAL CONTEXT:\n- You receive queries through Slack messages\n- You use the RAG tool in n8n to search and retrieve relevant document sections\n- All responses should be crafted for readability on Slack's interface\n\nRESPONSE STRUCTURE:\n1. Direct answer to the question (1-2 sentences)\n2. Supporting details from retrieved documents (2-3 sentences or bullet points)\n3. Source citation (document name and date if available)\n4. Follow-up suggestion if applicable (1 sentence)\n\nAlways prioritize accuracy over speed. If multiple documents contain relevant information, synthesize the most important points rather than providing all details. If the query is ambiguous, ask a clarifying question before searching.\n\nRemember that you are a tool to empower employees, not replace human judgment. When questions involve complex decision-making, provide the relevant information and encourage the user to consult with appropriate team members.\n\nDate; {{ $now }}"
+        }
+      },
+      "id": "d28a4f86-a0d2-46b1-b8ab-3ee00cb8bc68",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        1856,
+        384
+      ],
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Get message').item.json.channel }}_{{ $('Get message').item.json.blocks[0].elements[0].elements[0].user_id }}",
+        "contextWindowLength": 10
+      },
+      "id": "bd67d9f3-ca1b-4593-86e7-c72f29b4a260",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        1920,
+        656
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "company_info",
+        "toolDescription": "Get business documents",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "khizra_collection",
+          "mode": "id"
+        },
+        "topK": 10,
+        "options": {}
+      },
+      "id": "084c7b22-c78a-40b9-8f8f-81344ca3f0d6",
+      "name": "RAG",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "position": [
+        2208,
+        672
+      ],
+      "typeVersion": 1.1,
+      "credentials": {
+        "qdrantApi": {
+          "id": "DnsjDEbpdPPIbdne",
+          "name": "QdrantApi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "6dd83e80-1464-4994-b790-a20bf9df25ac",
+      "name": "Calculator",
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "position": [
+        2080,
+        656
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09BDMFQ80P",
+          "mode": "list",
+          "cachedResultName": "gui"
+        },
+        "text": "=novel",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "=",
+              "reply_broadcast": true
+            }
+          },
+          "mrkdwn": true,
+          "unfurl_links": true
+        }
+      },
+      "id": "1d35215a-72cc-4678-ac93-56986ec030d9",
+      "name": "Send message",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        2208,
+        384
+      ],
+      "webhookId": "8d210bc5-b7a8-4a7d-8825-a29aeefc9dfe",
+      "typeVersion": 2.3,
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "WtPRrGCz7YQd6s5t",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "09131d38-8fde-41bd-831d-cad8bd67b823",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -160,
+        512
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://8753a5cd-593f-40de-b60f-1bc7bff35a2e.eu-west-2-0.aws.cloud.qdrant.io:6333/collections/khizra_collection",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"vectors\": {\n    \"size\": 512,\n    \"distance\": \"Cosine\"\n  }\n}\n",
+        "options": {}
+      },
+      "id": "c2794f3a-22de-4e6b-8f58-c99a57296349",
+      "name": "Create collection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        144,
+        384
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "47dgRU4tEUvHq6h7",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://8753a5cd-593f-40de-b60f-1bc7bff35a2e.eu-west-2-0.aws.cloud.qdrant.io:6333/collections/khizra_collection/points/delete",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"filter\": {}\n}",
+        "options": {}
+      },
+      "id": "449d4e38-f1da-488e-82cb-11110a41d535",
+      "name": "Refresh collection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        144,
+        640
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "47dgRU4tEUvHq6h7",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "filter": {
+          "driveId": {
+            "__rl": true,
+            "value": "My Drive",
+            "mode": "list",
+            "cachedResultName": "My Drive",
+            "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+          },
+          "folderId": {
+            "__rl": true,
+            "value": "1lHB_ql9GV7889lzUDMSUxy6TSDu9Q50r",
+            "mode": "list",
+            "cachedResultName": "n8n_data",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1lHB_ql9GV7889lzUDMSUxy6TSDu9Q50r"
+          }
+        },
+        "options": {}
+      },
+      "id": "05ac9e74-f31b-47ed-bcb3-8a889e77964b",
+      "name": "Get folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        368,
+        640
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "G8UApqrtCLE4Cg4V",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "4ca200e1-cfb0-4b8a-a658-3013f44cf081",
+      "name": "Download Files",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        592,
+        640
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "G8UApqrtCLE4Cg4V",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "id": "ebe61f83-bf79-4036-a602-a7dff91c9f3e",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        1072,
+        704
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chunkSize": 300,
+        "chunkOverlap": 30
+      },
+      "id": "7380f736-4a81-448e-866d-801c654ffe76",
+      "name": "Token Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterTokenSplitter",
+      "position": [
+        1056,
+        896
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "=khizra_collectinn",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "751ede1f-cad7-42ae-8b51-367890fada9d",
+      "name": "Qdrant Vector Store1",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "position": [
+        912,
+        512
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "qdrantApi": {
+          "id": "DnsjDEbpdPPIbdne",
+          "name": "QdrantApi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 560,
+        "width": 684,
+        "color": 4
+      },
+      "id": "d11e8608-8780-4e58-9865-76feec105634",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        336
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "id": "00c34594-a3f7-471c-8cc5-f58c650ac50e",
+      "name": "Embeddings Ollama",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "position": [
+        928,
+        736
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "ollamaApi": {
+          "id": "9iLyWDXjUKJL1E84",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "id": "1c81994b-9c70-4228-9492-723bd784ece0",
+      "name": "Ollama Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "position": [
+        1712,
+        656
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "ollamaApi": {
+          "id": "9iLyWDXjUKJL1E84",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "id": "ddb365b9-d1da-4a44-93cf-b7974b326d55",
+      "name": "Embeddings Ollama1",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "position": [
+        2160,
+        880
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "ollamaApi": {
+          "id": "9iLyWDXjUKJL1E84",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 752,
+        "width": 1100,
+        "color": 3
+      },
+      "id": "4f748127-bc65-4132-97af-5ad84896eeea",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1456,
+        320
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "app_mention"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C09BDMFQ80P",
+          "mode": "list",
+          "cachedResultName": "gui"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        384
+      ],
+      "id": "8d7e404e-ea4d-45a5-8c0a-18c243d32f0f",
+      "name": "Slack Trigger",
+      "webhookId": "3b306d4e-c58a-4046-8af8-255998ae9f9b",
+      "credentials": {
+        "slackApi": {
+          "id": "t5XYolGJiM2bFQjI",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 624,
+        "width": 540,
+        "color": 6
+      },
+      "id": "061e8837-a49c-4385-8c76-00061b66e69f",
+      "name": "Sticky Note6",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        832,
+        448
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "RAG": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get folder": {
+      "main": [
+        [
+          {
+            "node": "Download Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Files": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh collection": {
+      "main": [
+        [
+          {
+            "node": "Get folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Create collection",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Refresh collection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "RAG",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "609e4a82-87a7-4d10-9b18-3402e65a4ef0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4738e6e4a3d88a7615d803b55211efff47f99120e2a5e4ddf1dd3b4b1fbe86ab"
+  },
+  "id": "9WHSqL4fuM1YNWi6",
+  "tags": []
+}

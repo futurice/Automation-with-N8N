@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>N8N Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .chat-container {
+      width: 75%;
+      max-width: 100%;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+    }
+    .chat-header {
+      background-color: #343a40;
+      color: white;
+      padding: 1rem;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+    }
+    .chat-body {
+      padding: 1rem;
+      overflow-y: auto;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .chat-message {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.75rem;
+      max-width: 70%;
+    }
+    /* User message container aligned right */
+    .user-msg {
+      margin-left: auto;
+      flex-direction: row-reverse;
+      text-align: right;
+    }
+    /* Bot message container aligned left */
+    .bot-msg {
+      margin-right: auto;
+    }
+    /* Message bubble styles */
+    .msg {
+      padding: 10px 15px;
+      border-radius: 18px;
+      font-size: 1rem;
+      line-height: 1.3;
+      position: relative;
+      word-wrap: break-word;
+    }
+    .user-msg .msg {
+      background-color: #d4edda;
+      color: #155724;
+      border-bottom-right-radius: 0;
+    }
+    .bot-msg .msg {
+      background-color: #e9ecef;
+      color: #212529;
+      border-bottom-left-radius: 0;
+    }
+    /* Avatar circle */
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      flex-shrink: 0;
+    }
+    .user-avatar {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/1946/1946429.png');
+    }
+    .bot-avatar {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/4712/4712109.png');
+    }
+    /* Timestamp below each message bubble */
+    .timestamp {
+      font-size: 0.75rem;
+      color: #6c757d;
+      margin-top: 4px;
+      user-select: none;
+    }
+    /* Footer styling */
+    .chat-footer {
+      display: flex;
+      padding: 0.75rem;
+      border-top: 1px solid #dee2e6;
+      gap: 0.5rem;
+    }
+    #userInput {
+      flex-grow: 1;
+    }
+    /* Typing animation container */
+    .typing {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      max-width: 70%;
+      margin-right: auto;
+    }
+    /* Dots animation */
+    .typing-dots span {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin: 0 2px;
+      background-color: #6c757d;
+      border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+    .typing-dots span:nth-child(1) {
+      animation-delay: 0s;
+    }
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    @keyframes blink {
+      0%, 80%, 100% {
+        opacity: 0.3;
+      }
+      40% {
+        opacity: 1;
+      }
+    }
+    /* Spinner */
+    .spinner-border {
+      width: 20px;
+      height: 20px;
+      border-width: 0.15em;
+      color: #6c757d;
+      animation: spinner-border .75s linear infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chat-container d-flex flex-column">
+    <div class="chat-header">
+      <h5 class="mb-0">N8N Chatbot</h5>
+    </div>
+
+    <div class="chat-body" id="chatbox">
+      <!-- Chat messages will appear here -->
+    </div>
+
+    <div class="chat-footer">
+      <input
+        type="text"
+        class="form-control"
+        id="userInput"
+        placeholder="Type your message..."
+        onkeydown="if(event.key === 'Enter') sendMessage();"
+      />
+      <button class="btn btn-secondary" onclick="sendMessage()">Send</button>
+
+    </div>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      const chatbox = document.getElementById('chatbox');
+
+      // Create timestamp for user message
+      const userTimestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+      // Append user message with avatar and timestamp
+      chatbox.innerHTML += `
+        <div class="chat-message user-msg">
+          <div class="avatar user-avatar"></div>
+          <div>
+            <div class="msg">${escapeHtml(message)}</div>
+            <div class="timestamp">${userTimestamp}</div>
+          </div>
+        </div>`;
+      chatbox.scrollTop = chatbox.scrollHeight;
+      input.value = "";
+
+      // Add typing animation with spinner
+      const typingId = 'typing-indicator';
+      chatbox.innerHTML += `
+        <div class="chat-message bot-msg typing" id="${typingId}">
+          <div class="avatar bot-avatar"></div>
+          <div>
+            <div class="msg">
+              <div class="typing-dots">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+            <div class="timestamp">...</div>
+          </div>
+          <div class="spinner-border" role="status" aria-hidden="true"></div>
+        </div>`;
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      try {
+        const response = await fetch('http://localhost:5678/webhook-test/test', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ chatInput: message, sessionId: '123456' }),
+        });
+
+        const data = await response.json();
+        const reply = data.output || "No response from bot.";
+
+        // Remove typing indicator
+        document.getElementById(typingId).remove();
+
+        // Timestamp for bot message
+        const botTimestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+        // Append bot reply with avatar and timestamp
+        chatbox.innerHTML += `
+          <div class="chat-message bot-msg">
+            <div class="avatar bot-avatar"></div>
+            <div>
+                <div class="msg">${escapeHtml(reply)
+                .replace(/(:)(\s*\n)/, '$1<br><br>')  
+                .replace(/\n/g, '<br>')}</div>         
+
+                <div class="timestamp">${botTimestamp}</div>
+            </div>
+          </div>`;
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+      } catch (error) {
+        // Remove typing indicator
+        document.getElementById(typingId).remove();
+
+        chatbox.innerHTML += `
+          <div class="chat-message bot-msg">
+            <div class="avatar bot-avatar"></div>
+            <div>
+              <div class="msg text-danger">⚠️ Error: ${escapeHtml(error.message)}</div>
+              <div class="timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
+            </div>
+          </div>`;
+        chatbox.scrollTop = chatbox.scrollHeight;
+      }
+    }
+
+    // Utility to escape HTML special chars to prevent XSS
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+      };
+      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+  </script>
+
+</body>
+</html>

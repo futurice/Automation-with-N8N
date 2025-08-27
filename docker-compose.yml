@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: ankane/pgvector:latest
+    restart: always
+    environment:
+      POSTGRES_USER: khizra
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: n8n_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n_db
+      - DB_POSTGRESDB_USER=xxxxx
+      - DB_POSTGRESDB_PASSWORD=xxxx_xxxx
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=n8n_user
+      - N8N_BASIC_AUTH_PASSWORD=1234
+      - N8N_ALLOW_CORS=*
+      - N8N_ALLOW_CORS=*
+      - N8N_CORS_ORIGIN=http://localhost:3001,http://127.0.0.1:3001
+      - N8N_CORS_METHODS=GET,POST,OPTIONS
+      - N8N_CORS_HEADERS=Content-Type,Authorization
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_GPT4_TURBO}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  n8n_data:
+

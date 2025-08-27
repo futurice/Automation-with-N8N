@@ -1,0 +1,1622 @@
+{
+  "name": "N8N Workflow Asana Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://app.asana.com/api/1.0/tasks/{{$node[\"Project ID Matching2\"].json[\"output\"]}}/stories",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 2/1210867328346471/1210867638088339:83162f85583042c5ad3cc94b4ec1a4af"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"data\": {\n    \"text\": \"{{ $json.output.replace(/\"/g, '\\\\\"') }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        448
+      ],
+      "id": "c059eee7-7430-4e21-8c8b-231520a8fe08",
+      "name": "Add Comment"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://app.asana.com/api/1.0/tasks/{{$node[\"Project ID Matching2\"].json[\"output\"]}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 2/1210867328346471/1210867638088339:83162f85583042c5ad3cc94b4ec1a4af"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"data\": {\n    \"completed\": {{ $json.output }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        864
+      ],
+      "id": "8301780f-8b2c-4bbb-942d-dc8b4d222a13",
+      "name": "Change Status"
+    },
+    {
+      "parameters": {
+        "url": "=https://app.asana.com/api/1.0/projects/{{$node[\"Project ID Matching1\"].json[\"output\"]}}\n/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 2/1210867328346471/1210867638088339:83162f85583042c5ad3cc94b4ec1a4af"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        48,
+        64
+      ],
+      "id": "a35f8d57-5424-432a-b7e2-bb0db09e9c2a",
+      "name": "Get Project Tasks"
+    },
+    {
+      "parameters": {
+        "url": "=https://app.asana.com/api/1.0/projects/{{$node[\"Project ID Matching1\"].json[\"output\"]}}/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 2/1210867328346471/1210867638088339:83162f85583042c5ad3cc94b4ec1a4af"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -192,
+        448
+      ],
+      "id": "7c8ae6a8-ac2b-48fa-9045-77b3270700ec",
+      "name": "Get Tasks"
+    },
+    {
+      "parameters": {
+        "url": "https://app.asana.com/api/1.0/projects?workspace=1210867328346483",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 2/1210867328346471/1210867638088339:83162f85583042c5ad3cc94b4ec1a4af"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2016,
+        96
+      ],
+      "id": "ef0084bb-07f8-40bf-b50b-5566f909fdf6",
+      "name": "Get Projects"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "23c2ee70-3a1f-4b8c-9df1-47b54978db4e",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2256,
+        96
+      ],
+      "id": "db14b273-8c62-4635-9907-27f24090bbaa",
+      "name": "Webhook",
+      "webhookId": "23c2ee70-3a1f-4b8c-9df1-47b54978db4e"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "options": {
+          "systemMessage": "=You are an assistant analyzing the current message in the context of the ongoing conversation.\n\nYour goals:\n\t1.\tDetermine if the user is referring to a new project or continuing discussion about a previously mentioned project.\n\t•\tUse memory to identify if a project was already being discussed.\n\t2.\tCheck if the user is asking about a specific task within that project.\n\t•\tIf yes, extract the task name.\n\t•\tIf not, assume the discussion is only about the project.\n\nYour output should be structured with two columns:\n\t•\tProject: the name of the project being discussed.\n\t•\tTask: the name of the task (if present). If the task is not mentioned, omit this column.\n\nExamples:\n\t•\tIf only a project is mentioned or implied:\nProject: Vinegar Alpha\n\t•\tIf a task is also mentioned:\nProject: Vinegar Alpha\nTask: Frontend Bug #2\n\nReturn only these lines, no extra explanation.\n\nHere is the list of all projects in Asana:\n{{ $node[\"Get Projects\"].json[\"data\"].map(p => p.name).join(\", \") }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -1872,
+        96
+      ],
+      "id": "9cb56a90-ed7d-487b-857a-43f0c6408027",
+      "name": "Identify Project and Task"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "options": {
+          "systemMessage": "=Classify the user’s message into one of the following intents:\n\nIf there is no specific task in question, only the project, then it's always:\n- get_tasks: Asking about current tasks within a particular project.\n\nIf there is a task in question, choose one of these:\n- get_summary: Asking for an update or summary on a specific task.\n- add_comment: Wants to add a note or comment to a task  \n- change_status: Wants to update a task’s status (e.g. mark as done)  \n\nOnly return the intent name exactly, no extra text.\n\nAll projects in Asana:\n{{ $node[\"Get Projects\"].json[\"data\"].map(p => p.name).join(\", \") }}\n\nProjects and/or tasks in question:\n{{ $json.output }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -1568,
+        96
+      ],
+      "id": "072b3f36-ef1f-4e32-b034-4ceb86ac783d",
+      "name": "Classify Intent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tell the user that you can't find the relevant project in Asana. Ask them to clarify the project name.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -992,
+        576
+      ],
+      "id": "b079a63b-dac8-4fc9-a462-a0ccf6561a9d",
+      "name": "NO PROJECT FOUND"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "options": {
+          "systemMessage": "=You are an AI assistant replying to a project manager who asked about the tasks within a {{ $('Identify Project and Task').item.json.output }}\n\nHere is the list of tasks for this project (each has a name):\n\n{{ $node[\"Get Project Tasks\"].json[\"data\"].map(t => `• ${t.name}`).join(\"\\n\") }}\nWrite a short, helpful summary reply to the user message. Please list each task on its own line, starting with a bullet point (•) followed by a space and the task name. For example:\n\n• update ui\n• modify demo\n• add new demo\n\nIf no tasks are found, say that the project currently has no tasks listed.\n\nIn the end encourage them to ask the follow-up question.\n\nReturn only the reply message."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        224,
+        64
+      ],
+      "id": "9d5e9bdf-2622-4aff-bd03-1ba358770854",
+      "name": "Summarize Task List"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Task update log:\n{{ $json[\"data\"].map(e => `• ${e.created_by?.name || 'Unknown'} on ${new Date(e.created_at).toLocaleString('en-US')}: ${e.text || e.resource_subtype}`).join('\\n') }}\n\nUser Message:\n\"{{ $('Webhook').item.json.body.chatInput }}\"",
+        "options": {
+          "systemMessage": "=You are an assistant helping a project manager stay informed.\n\nYou will receive a raw update log from an Asana task. Your job is to explain what happened recently in a clear, conversational message — as if you're casually updating a colleague.\n\nDon’t just list the events — *summarize and phrase them naturally*. Combine related updates and mention who did what. Highlight the most recent actions first.\n\nIf the only updates are comments, mention them briefly. If status was changed or task reopened, make sure to include that.\n\nSpeak like a real person. Keep it concise and helpful. No formatting or bullet points — just a human-style reply."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1072,
+        32
+      ],
+      "id": "68057ea6-71fd-4096-9dab-9b9312ead100",
+      "name": "Summarize Task Updates"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "options": {
+          "systemMessage": "=Extract a direct internal comment from the user message to be added to a task in Asana.\nDo not include meta phrases like “Let’s add a comment” or “This should be noted”.\nJust return the comment as if it were already written in the task.\nMaintain the original tone and vocabulary (casual, urgent, or polite).\nReturn only the comment content, no quotes, no explanations."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        800,
+        448
+      ],
+      "id": "0138fc43-d26f-43f6-bf59-f3f308d58f2f",
+      "name": "Generate Comment"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "options": {
+          "systemMessage": "=You are helping confirm that a comment has been successfully added to a task in Asana.\n\nHere is the relevant data:\n- Task Name: {{ $json.data.target.name }}\n- Comment Text: {{ $json.data.text }}\n\nGenerate a polite, professional confirmation message for the project manager.\nMention the task name in bold and duplicate the comment text in quotes.\n\nExample:\n📝 Comment added to **Task Title**: “actual comment content”\n\nOnly return the confirmation message."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1248,
+        448
+      ],
+      "id": "c12a6548-3a11-4a3a-9cad-197d8e49f6b1",
+      "name": "Confirm Comment Added"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "options": {
+          "systemMessage": "=You are helping interpret whether the user wants to mark a task as completed in Asana.\n\n\nAnalyze the message carefully and determine the user's intent.\n\nOutput ONLY:\n- `true` if the message implies the task should be marked as completed.\n- `false` if not.\n\nDo not include anything else in your output."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        800,
+        864
+      ],
+      "id": "1c50244c-e8da-4171-bb29-31ca6e664aa6",
+      "name": "Detect Completion Request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "options": {
+          "systemMessage": "=You are helping generate a short confirmation message to a project manager after a status update in Asana.\n\nJust confirm that the status of the task has been updates as requested."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1248,
+        864
+      ],
+      "id": "1f3aa6c1-064f-413b-873e-fe39bc3649a3",
+      "name": "Confirm Status Updated"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1440,
+        272
+      ],
+      "id": "508b81a6-fa67-4119-b529-6013271bcf7c",
+      "name": "Memory 2"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -864,
+        736
+      ],
+      "id": "083df15d-2422-4a65-aa89-fd479159aaab",
+      "name": "Memory 3"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        208
+      ],
+      "id": "a520a777-524e-47e5-9502-6dd10fe97546",
+      "name": "Memory 4"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1200,
+        176
+      ],
+      "id": "9df3b5a4-1460-414a-86e4-6ea3440d2500",
+      "name": "Memory 5"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        608
+      ],
+      "id": "ad36547b-60f8-4e7d-8753-7090f7ae1d1d",
+      "name": "Memory 6"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        592
+      ],
+      "id": "87c70c8b-63ef-458f-8747-504075ecee75",
+      "name": "Memory 7"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        1024
+      ],
+      "id": "57812253-6f3b-4207-8196-9a36c332d55b",
+      "name": "Memory 8"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        1024
+      ],
+      "id": "144ea3eb-939e-411a-bf89-d4500610a148",
+      "name": "Memory 9"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e2089129-a587-41aa-8096-86daa91638e8",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "unknown",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -704,
+        176
+      ],
+      "id": "4a284057-f8a2-468a-a7d7-7d1ab0f19fb2",
+      "name": "Project ID Found?"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "32074258-f081-4e42-b2ae-3cd5db42ebd9",
+                    "leftValue": "={{ $('Classify Intent').item.json.output }}",
+                    "rightValue": "get_tasks",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Project question"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "93ad806f-793f-4b34-ba39-dfdf0345a067",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Task Question"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -448,
+        160
+      ],
+      "id": "f64fe3bd-5ad4-44d6-a06d-126332484c24",
+      "name": "Project or Task?"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Classify Intent').item.json.output }}",
+                    "rightValue": "get_summary",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "25d68863-8d20-4d5d-bc07-e25d10b47472"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "task summary"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "badbf568-b89e-423f-a292-71330ff81c61",
+                    "leftValue": "={{ $('Classify Intent').item.json.output }}",
+                    "rightValue": "add_comment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "add comment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "25522473-9cb0-4b7e-a992-0a0ad2c4f756",
+                    "leftValue": "={{ $('Classify Intent').item.json.output }}",
+                    "rightValue": "change_status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "change status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        320,
+        432
+      ],
+      "id": "8e3f3a6c-3d02-467e-8141-f1368d23f38e",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "=https://app.asana.com/api/1.0/tasks/{{$node[\"Project ID Matching2\"].json[\"output\"]}}/stories",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 2/1210867328346471/1210867638088339:83162f85583042c5ad3cc94b4ec1a4af"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        80
+      ],
+      "id": "61397e81-0ac8-48a4-bae1-9ede6a668443",
+      "name": "Get Task Updates"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ output: $json.output }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1856,
+        448
+      ],
+      "id": "d31a89a8-ed7e-4aaf-8e6d-29036860fbf0",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ output: $json.output }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -672,
+        576
+      ],
+      "id": "5f227e02-42c8-4450-acf0-81ac73336836",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "content": "## Response",
+        "height": 220,
+        "width": 260,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1776,
+        384
+      ],
+      "typeVersion": 1,
+      "id": "46f25cbe-ad34-406e-a810-8e68d1bd8e00",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Project and Task Recognition",
+        "height": 456,
+        "width": 804
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        16
+      ],
+      "id": "03ee7eac-47eb-414d-8b3c-5be30a0b50b1",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Project ID Resolution",
+        "height": 448,
+        "width": 700,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        16
+      ],
+      "id": "3597f326-4330-4db0-b175-59bfe29cdfad",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Project Summary",
+        "height": 336,
+        "width": 584,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5cdfc6fa-a2ad-4631-886b-cfd31c15485c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Task Summary",
+        "height": 340,
+        "width": 872,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        704,
+        -32
+      ],
+      "id": "dc24ffe7-a02c-433b-9a3c-1c199eba65dc",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Adding Comment",
+        "height": 384,
+        "width": 872,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        704,
+        352
+      ],
+      "id": "59a1a0c9-0953-4cba-b6a9-16bd3aaf24c9",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Updating Status",
+        "height": 420,
+        "width": 872,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        704,
+        784
+      ],
+      "id": "b7ae05ec-835f-44ad-92b7-7b627e489da8",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Webhook Trigger",
+        "height": 252,
+        "width": 260,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2336,
+        16
+      ],
+      "typeVersion": 1,
+      "id": "5892b061-cfb9-40e2-ba3e-5dfc5b0ed19f",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## Task Matching & Routing",
+        "height": 408,
+        "width": 1032,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        368
+      ],
+      "id": "6f4a1ce5-8c8c-470d-98ad-4d4ac8e8d674",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        800,
+        1024
+      ],
+      "id": "da0fc4a5-b76c-4298-8e15-32a0c5196bf1",
+      "name": "Azure OpenAI Chat Model8",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1264,
+        2480
+      ],
+      "id": "0e237cad-e94e-453d-b17b-667be896f2a1",
+      "name": "When chat message received",
+      "webhookId": "b2d0e174-6394-46c3-8b41-2b2c25ccdd39"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1744,
+        304
+      ],
+      "id": "2458a9fb-066c-4f2b-87df-0c7ccdc18dcc",
+      "name": "Memory 1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are helping match project names with project IDs.\n\nProject name from a user message:  \n\"{{ $('Identify Project and Task').item.json.output }}\"\n\nAsana projects with IDs: \n{{ $node[\"Get Projects\"].json[\"data\"].map(p => `${p.name} (ID: ${p.gid})`).join(\", \") }}\n\nReturn ONLY the ID of the project.  \nIf you can't match confidently, respond with: unknown.",
+        "options": {
+          "systemMessage": "=You are helping match project names with project IDs.\n\nProject name from a user message:  \n\"{{ $('Identify Project and Task').item.json.output }}\"\n\nAsana projects with IDs: \n{{ $node[\"Get Projects\"].json[\"data\"].map(p => `${p.name} (ID: ${p.gid})`).join(\", \") }}\n\nReturn ONLY the ID of the project.  \nIf you can't match confidently, respond with: unknown."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -1072,
+        96
+      ],
+      "id": "8b469569-325d-4bf6-9582-28bfef540885",
+      "name": "Project ID Matching1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are helping match task names from a user message to official task names in Asana.\n\nTask name from a user message:\n\"{{ $('Identify Project and Task').item.json.output }}\"\n\nAsana tasks with IDs:\n{{ $node[\"Get Tasks\"].json[\"data\"].map(t => `${t.name} (ID: ${t.gid})`).join(\", \") }}\n\nReturn ONLY the ID of the task that best matches the name.  \nIf you can’t match confidently, respond with: unknown.",
+        "options": {
+          "systemMessage": "=You are helping match task names from a user message to official task names in Asana.\n\nTask name from a user message:\n\"{{ $('Identify Project and Task').item.json.output }}\"\n\nAsana tasks with IDs:\n{{ $node[\"Get Tasks\"].json[\"data\"].map(t => `${t.name} (ID: ${t.gid})`).join(\", \") }}\n\nReturn ONLY the ID of the task that best matches the name.  \nIf you can’t match confidently, respond with: unknown."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -16,
+        448
+      ],
+      "id": "7d380851-d8d6-4f16-904d-54ceb25000c6",
+      "name": "Project ID Matching2"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -1872,
+        304
+      ],
+      "id": "dd95a112-f93b-4d34-8be4-dd2d6e674bb4",
+      "name": "Azure OpenAI1",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        224,
+        208
+      ],
+      "id": "f2d04754-0855-4f31-98b0-e239b90aa743",
+      "name": "Azure OpenAI6",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        624
+      ],
+      "id": "db38ddf2-3388-43f3-9eb5-06d5af0b512e",
+      "name": "Azure OpenAI7",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        176
+      ],
+      "id": "06300296-43e4-41e5-9b92-0073dcced0bf",
+      "name": "Azure OpenAI",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        800,
+        608
+      ],
+      "id": "f790e14a-ba4b-4816-9b71-e3ec4c0e87ad",
+      "name": "Azure OpenAI2",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        592
+      ],
+      "id": "bc96e1f9-58ff-41ed-9dd7-17fe87ab8934",
+      "name": "Azure OpenAI8",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        1024
+      ],
+      "id": "e867cd8d-3c50-42f0-9a92-fe9303264258",
+      "name": "Azure OpenAI9",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## No Project ID",
+        "height": 368,
+        "width": 700,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        512
+      ],
+      "id": "6f799911-3d9e-4386-afb1-cb11acd437d2",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        736
+      ],
+      "id": "d980f92e-24bd-451a-ac7c-9d53aeb14c91",
+      "name": "Azure OpenAI5",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        432
+      ],
+      "id": "9a2b3dcc-5676-44c2-9834-ad7ec8dd7519",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        240
+      ],
+      "id": "4899daac-9651-4d6d-8fbb-656dca222767",
+      "name": "Azure OpenAI3",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini-khizra",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        272
+      ],
+      "id": "dfc6d949-a3a4-46ab-abc4-20148f031fa4",
+      "name": "Azure OpenAI4",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "TieX5CUQmmegmSeo",
+          "name": "Azure Open AI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Tasks": {
+      "main": [
+        [
+          {
+            "node": "Project ID Matching2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Projects": {
+      "main": [
+        [
+          {
+            "node": "Identify Project and Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Project Tasks": {
+      "main": [
+        [
+          {
+            "node": "Summarize Task List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change Status": {
+      "main": [
+        [
+          {
+            "node": "Confirm Status Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Comment": {
+      "main": [
+        [
+          {
+            "node": "Confirm Comment Added",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Project and Task": {
+      "main": [
+        [
+          {
+            "node": "Classify Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Intent": {
+      "main": [
+        [
+          {
+            "node": "Project ID Matching1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NO PROJECT FOUND": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Task List": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Task Updates": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Comment": {
+      "main": [
+        [
+          {
+            "node": "Add Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Comment Added": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Completion Request": {
+      "main": [
+        [
+          {
+            "node": "Change Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Status Updated": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory 2": {
+      "ai_memory": [
+        [
+          {
+            "node": "Classify Intent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory 3": {
+      "ai_memory": [
+        [
+          {
+            "node": "NO PROJECT FOUND",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory 4": {
+      "ai_memory": [
+        [
+          {
+            "node": "Summarize Task List",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory 5": {
+      "ai_memory": [
+        [
+          {
+            "node": "Summarize Task Updates",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory 6": {
+      "ai_memory": [
+        [
+          {
+            "node": "Generate Comment",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory 7": {
+      "ai_memory": [
+        [
+          {
+            "node": "Confirm Comment Added",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory 8": {
+      "ai_memory": [
+        [
+          {
+            "node": "Detect Completion Request",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory 9": {
+      "ai_memory": [
+        [
+          {
+            "node": "Confirm Status Updated",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project ID Found?": {
+      "main": [
+        [
+          {
+            "node": "Project or Task?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NO PROJECT FOUND",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project or Task?": {
+      "main": [
+        [
+          {
+            "node": "Get Project Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Get Task Updates",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Comment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Detect Completion Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Task Updates": {
+      "main": [
+        [
+          {
+            "node": "Summarize Task Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Chat Model8": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Detect Completion Request",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        []
+      ]
+    },
+    "Memory 1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Identify Project and Task",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project ID Matching1": {
+      "main": [
+        [
+          {
+            "node": "Project ID Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project ID Matching2": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Identify Project and Task",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Task List",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Project ID Matching2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Task Updates",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Comment",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI8": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Confirm Comment Added",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI9": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Confirm Status Updated",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "NO PROJECT FOUND",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Project ID Matching1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classify Intent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9449016a-60e9-4033-844f-29d2ad367a75",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4738e6e4a3d88a7615d803b55211efff47f99120e2a5e4ddf1dd3b4b1fbe86ab"
+  },
+  "id": "bSPsQHELlxzNwJkc",
+  "tags": [
+    {
+      "createdAt": "2025-08-26T23:40:35.281Z",
+      "updatedAt": "2025-08-26T23:40:35.281Z",
+      "id": "tiSqiWPEqvlvJTbH",
+      "name": "1.0"
+    }
+  ]
+}
