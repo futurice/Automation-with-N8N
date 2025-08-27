@@ -94,9 +94,9 @@ N8N_BASIC_AUTH_PASSWORD=1234
 ```
 
 ### Variables explained
-- **DB_TYPE, DB_POSTGRESDB_**: Configure n8n to connect to the Postgres database defined in `docker-compose.yml`. Make sure the user/password match the Postgres service.  
-- **N8N_BASIC_AUTH_**: Enable and set login credentials for the n8n UI. You can provide these in `.env` or directly in the `docker-compose.yml` environment section.  
-- **N8N_CORS_**: Allow browser-based frontends (like `chatbot.html` on port 3001) to access the n8n API/webhooks during development. This prevents cross-origin errors when your frontend and n8n run on different ports.  
+- **DB_TYPE, DB_POSTGRESDB**: Configure n8n to connect to the Postgres database defined in `docker-compose.yml`. Make sure the user/password match the Postgres service.  
+- **N8N_BASIC_AUTH**: Enable and set login credentials for the n8n UI. You can provide these in `.env` or directly in the `docker-compose.yml` environment section.  
+- **N8N_CORS**: Allow browser-based frontends (like `chatbot.html` on port 3001) to access the n8n API/webhooks during development. This prevents cross-origin errors when your frontend and n8n run on different ports.  
 
 > **Tip:** For local development, you can use either approach—environment variables in `.env` or directly in the Docker environment section. Using `.env` keeps secrets out of version control. Always add `.env` to `.gitignore`.
 
